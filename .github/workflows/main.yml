@@ -74,6 +74,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: pasj-build-${{ inputs.ref }}-${{ github.run_number }}
+          target_commitish: ${{ inputs.ref }}
           name: PASJ Chat ${{ inputs.ref }}
           files: |
             release/*.tar.gz
