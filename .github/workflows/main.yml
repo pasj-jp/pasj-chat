@@ -1,0 +1,81 @@
+name: Build PASJ Chat
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "PASJ Chat Branch"
+        required: true
+        default: "v11.7.1"
+      
+permissions:
+  contents: write
+
+jobs:
+  go-version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.calculate.outputs.GO_VERSION }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 1
+
+      - name: Calculate Go version
+        id: calculate
+        working-directory: server
+        run: echo "GO_VERSION=$(cat .go-version)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: go-version
+    runs-on: ubuntu-24.04
+    container: mattermost/mattermost-build-server:${{ needs.go-version.outputs.version }}
+    defaults:
+      run:
+        working-directory: server
+    env:
+      BUILD_NUMBER: ${{ inputs.ref }}
+      FIPS_ENABLED: false
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: "webapp/package-lock.json"
+
+      - name: Build Mattermost
+        run: |
+          make config-reset
+          make build-cmd
+          make package-linux-amd64
+
+      - name: Rename artifact
+        working-directory: .
+        run: |
+          mkdir -p release
+
+          ORIGINAL=$(find server/dist -maxdepth 1 -name "mattermost-*-linux-amd64.tar.gz" -print -quit)
+          test -n "$ORIGINAL"
+
+          cp "$ORIGINAL" \
+            "release/pasj-chat-${{ inputs.ref }}-linux-amd64.tar.gz"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: pasj-build-${{ inputs.ref }}-${{ github.run_number }}
+          name: PASJ Chat ${{ inputs.ref }}
+          files: |
+            release/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
