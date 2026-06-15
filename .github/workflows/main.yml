@@ -73,7 +73,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: pasj-build-${{ inputs.ref }}-${{ github.run_number }}
+          tag_name: pasj-build-${{ inputs.ref }}
           target_commitish: ${{ inputs.ref }}
           name: PASJ Chat ${{ inputs.ref }}
           files: |
