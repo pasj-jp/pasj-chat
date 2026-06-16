@@ -251,3 +251,157 @@ describe('PluginRegistry — registerChannelIconOverride', () => {
         consoleSpy.mockRestore();
     });
 });
+
+describe('PluginRegistry — registerChannelComposerBannerComponent', () => {
+    const PLUGIN_ID = 'test_plugin';
+
+    beforeEach(() => {
+        mockCurrentStore = createStore(pluginsReducer);
+    });
+
+    function getBanners() {
+        return mockCurrentStore.getState().components.ChannelComposerBanner;
+    }
+
+    it('adds an entry to ChannelComposerBanner with the plugin id', () => {
+        const registry = new PluginRegistry(PLUGIN_ID);
+        registry.registerChannelComposerBannerComponent({component: () => null});
+
+        const entries = getBanners();
+        expect(entries).toHaveLength(1);
+        expect(entries[0].pluginId).toBe(PLUGIN_ID);
+    });
+
+    it('REMOVED_WEBAPP_PLUGIN sweeps entries for that plugin and leaves others intact', () => {
+        const registry = new PluginRegistry(PLUGIN_ID);
+        const otherRegistry = new PluginRegistry('other_plugin');
+
+        registry.registerChannelComposerBannerComponent({component: () => null});
+        otherRegistry.registerChannelComposerBannerComponent({component: () => null});
+
+        mockCurrentStore.dispatch({
+            type: ActionTypes.REMOVED_WEBAPP_PLUGIN,
+            data: {id: PLUGIN_ID},
+        });
+
+        const entries = getBanners();
+        expect(entries).toHaveLength(1);
+        expect(entries[0].pluginId).toBe('other_plugin');
+    });
+});
+
+describe('PluginRegistry — registerChannelIntro', () => {
+    const PLUGIN_ID = 'test_plugin';
+
+    beforeEach(() => {
+        mockCurrentStore = createStore(pluginsReducer);
+    });
+
+    function getIntroRegs() {
+        return mockCurrentStore.getState().components.ChannelIntro;
+    }
+
+    it('adds an entry to ChannelIntro with the plugin id, matcher, and component', () => {
+        const registry = new PluginRegistry(PLUGIN_ID);
+        const matcher = () => true;
+        const component = () => null;
+        registry.registerChannelIntro({matcher, component});
+
+        const entries = getIntroRegs();
+        expect(entries).toHaveLength(1);
+        expect(entries[0].pluginId).toBe(PLUGIN_ID);
+        expect(entries[0].matcher).toBe(matcher);
+        expect(entries[0].component).toBe(component);
+    });
+
+    it('REMOVED_WEBAPP_PLUGIN sweeps entries for that plugin and leaves others intact', () => {
+        const registry = new PluginRegistry(PLUGIN_ID);
+        const otherRegistry = new PluginRegistry('other_plugin');
+
+        registry.registerChannelIntro({matcher: () => true, component: () => null});
+        otherRegistry.registerChannelIntro({matcher: () => false, component: () => null});
+
+        mockCurrentStore.dispatch({
+            type: ActionTypes.REMOVED_WEBAPP_PLUGIN,
+            data: {id: PLUGIN_ID},
+        });
+
+        const entries = getIntroRegs();
+        expect(entries).toHaveLength(1);
+        expect(entries[0].pluginId).toBe('other_plugin');
+    });
+});
+
+describe('PluginRegistry — registerComposerPlaceholder', () => {
+    const PLUGIN_ID = 'test_plugin';
+
+    beforeEach(() => {
+        mockCurrentStore = createStore(pluginsReducer);
+    });
+
+    function getRegistrations() {
+        return mockCurrentStore.getState().components.ComposerPlaceholder;
+    }
+
+    it('(a) dispatches RECEIVED_PLUGIN_COMPONENT with name ComposerPlaceholder, storing transform as-is', () => {
+        const registry = new PluginRegistry(PLUGIN_ID);
+        const transform = (p: string) => `${p} (encrypted)`;
+        registry.registerComposerPlaceholder({transform});
+
+        const registrations = getRegistrations();
+        expect(registrations).toHaveLength(1);
+        expect(registrations[0].pluginId).toBe(PLUGIN_ID);
+        expect(registrations[0].transform).toBe(transform);
+    });
+
+    it('(b) returns a non-empty string id', () => {
+        const registry = new PluginRegistry(PLUGIN_ID);
+        const id = registry.registerComposerPlaceholder({transform: (p) => p});
+        expect(typeof id).toBe('string');
+        expect(id.length).toBeGreaterThan(0);
+    });
+
+    it('(c) REMOVED_WEBAPP_PLUGIN sweeps all registrations for that plugin', () => {
+        const registry = new PluginRegistry(PLUGIN_ID);
+        const otherRegistry = new PluginRegistry('other_plugin');
+
+        registry.registerComposerPlaceholder({transform: (p) => `${p} (a)`});
+        registry.registerComposerPlaceholder({transform: (p) => `${p} (b)`});
+        otherRegistry.registerComposerPlaceholder({transform: (p) => `${p} (c)`});
+
+        mockCurrentStore.dispatch({
+            type: ActionTypes.REMOVED_WEBAPP_PLUGIN,
+            data: {id: PLUGIN_ID},
+        });
+
+        const registrations = getRegistrations();
+        expect(registrations).toHaveLength(1);
+        expect(registrations[0].pluginId).toBe('other_plugin');
+    });
+
+    it('(e) two registrations from same plugin accumulate in insertion order (no deduplication)', () => {
+        const registry = new PluginRegistry(PLUGIN_ID);
+        const first = (p: string) => `${p} (first)`;
+        const second = (p: string) => `${p} (second)`;
+        const id1 = registry.registerComposerPlaceholder({transform: first});
+        const id2 = registry.registerComposerPlaceholder({transform: second});
+
+        expect(id1).not.toBe(id2);
+        expect(getRegistrations()).toHaveLength(2);
+        expect(getRegistrations()[0].transform).toBe(first);
+        expect(getRegistrations()[1].transform).toBe(second);
+    });
+
+    it('(g) two registrations from different plugins are sorted by pluginId', () => {
+        const registryZ = new PluginRegistry('zzz_plugin');
+        const registryA = new PluginRegistry('aaa_plugin');
+
+        registryZ.registerComposerPlaceholder({transform: (p) => `${p} (zzz)`});
+        registryA.registerComposerPlaceholder({transform: (p) => `${p} (aaa)`});
+
+        const registrations = getRegistrations();
+        expect(registrations).toHaveLength(2);
+        expect(registrations[0].pluginId).toBe('aaa_plugin');
+        expect(registrations[1].pluginId).toBe('zzz_plugin');
+    });
+});
