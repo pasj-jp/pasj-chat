@@ -402,8 +402,11 @@ const NewChannelModal = () => {
         url,
         purpose,
         type,
+        defaultCategoryName,
         managedCategoryName,
-    }), [currentTeamId, displayName, url, purpose, type, managedCategoryName]);
+        classificationId: classificationEnabled ? selectedClassificationId : undefined,
+        bannerText: classificationEnabled ? bannerText : undefined,
+    }), [currentTeamId, displayName, url, purpose, type, defaultCategoryName, managedCategoryName, classificationEnabled, selectedClassificationId, bannerText]);
 
     const newBoardInfoIcon = (
         <WithTooltip
@@ -432,7 +435,7 @@ const NewChannelModal = () => {
         <LoadingSpinner
             text={formatMessage({id: 'channel_modal.creating', defaultMessage: 'Creating...'})}
         />
-    ) : formatMessage({id: 'channel_modal.createNew', defaultMessage: 'Create channel'});
+    ) : (activePluginOption?.createButtonText ?? formatMessage({id: 'channel_modal.createNew', defaultMessage: 'Create channel'}));
 
     return (
         <GenericModal
@@ -498,12 +501,6 @@ const NewChannelModal = () => {
                             menuPortalTargetId='new-channel-modal'
                         />
                     </div>
-                )}
-                {activePluginOption?.extraContent && (
-                    <activePluginOption.extraContent
-                        formState={formState}
-                        setCanCreate={setPluginCanCreate}
-                    />
                 )}
                 <div className='new-channel-modal-purpose-container'>
                     <Input
@@ -619,6 +616,12 @@ const NewChannelModal = () => {
                             </div>
                         )}
                     </div>
+                )}
+                {activePluginOption?.extraContent && (
+                    <activePluginOption.extraContent
+                        formState={formState}
+                        setCanCreate={setPluginCanCreate}
+                    />
                 )}
             </div>
         </GenericModal>
