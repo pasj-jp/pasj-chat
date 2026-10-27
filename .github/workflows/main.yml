@@ -18,7 +18,7 @@ jobs:
       version: ${{ steps.calculate.outputs.GO_VERSION }}
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 1
@@ -41,13 +41,13 @@ jobs:
 
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
@@ -71,7 +71,7 @@ jobs:
             "release/pasj-chat-${{ inputs.ref }}-linux-amd64.tar.gz"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: pasj-build-${{ inputs.ref }}
           name: PASJ Chat ${{ inputs.ref }}
