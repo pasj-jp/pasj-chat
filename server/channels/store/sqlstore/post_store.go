@@ -2368,8 +2368,7 @@ func (s *SqlPostStore) search(logger mlog.LoggerIFace, teamId string, userId str
 			tsQueryClause += " &!(" + excludedClause + ")"
 		}
 
-		textSearchCfg := s.pgDefaultTextSearchConfig
-		searchClause := fmt.Sprintf("to_tsvector('%[1]s', %[2]s) @@  to_tsquery('%[1]s', ?)", textSearchCfg, searchType)
+		searchClause := fmt.Sprintf("%[1]s @@@ ?", searchType)
 		baseQuery = baseQuery.Where(searchClause, tsQueryClause)
 	}
 
